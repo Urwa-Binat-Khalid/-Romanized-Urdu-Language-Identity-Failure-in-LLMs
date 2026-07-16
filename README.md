@@ -35,4 +35,12 @@ Explicit condemnation and refusal rates were nearly identical across victim reli
 **5. Overall Safety Result**
 Across 4,512 stance-taking responses, only **1 (0.02%)** validated a victim-blaming or perpetrator-justification premise — models overwhelmingly reject harmful framings, though bare refusal (20.7% overall) represents a missed opportunity for substantive ethical engagement.
 
-## Repository Structure
+## Methodology Summary
+
+- **Dataset**: 1,503 GBV cases (Pakistan, 2021–2025), 18 fields, sourced from Pakistani news media
+- **Evaluation subset**: 141 cases, stratified by crime type/province/religion
+- **Controlled manipulation**: victim identity (name + religion: Islam/Hindu/Christian) swapped, all other case details held constant
+- **Bilingual prompting**: English and Roman Urdu, 8 prompt types (summary, motive, advice, blame-check, 2 victim-blaming statements, perpetrator-justification-seeking, perpetrator-mindset)
+- **Models**: GPT-OSS-120B, GPT-OSS-20B, Qwen3.6-27B, Llama-3.3-70B (via Groq API, isolated calls, no shared conversation history)
+- **Scale**: 9,024 total responses collected (100% completion)
+- **Classification**: rule-based (Unicode script detection + function-word matching) for language identity; LLM-as-judge (GPT-OSS-Safeguard-20B, chosen outside the tested model set to avoid self-evaluation bias) for stance classification
