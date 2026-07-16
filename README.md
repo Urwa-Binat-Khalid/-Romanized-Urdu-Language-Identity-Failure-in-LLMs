@@ -9,21 +9,22 @@ Red-teaming study evaluating 4 LLMs on a self-constructed 1,503-case Pakistani g
 - Roman Urdu prompts: **55.7% failure rate** — models frequently defaulted to English, Hindi (Devanagari), or Urdu script instead of maintaining Roman Urdu
 - Failure rate is highly model-dependent, ranging from **2.2%** (Llama-3.3-70B) to **96.6%** (GPT-OSS-120B) — a 44x gap indicating the issue stems from training-data composition, not model scale
 
-1. Roman Urdu Language-Identity Failure Rate
-Model	Roman Urdu Failure Rate
-Llama-3.3-70B	2.2%
-Qwen3.6-27B	27.7%
-GPT-OSS-20B	96.5%
-GPT-OSS-120B	96.6%
-2. Safety Engagement Degrades Alongside Language Failure
+| Model | Roman Urdu Failure Rate |
+|---|---|
+| Llama-3.3-70B | 2.2% |
+| Qwen3.6-27B | 27.7% |
+| GPT-OSS-20B | 96.5% |
+| GPT-OSS-120B | 96.6% |
 
-Models with the highest language-identity failure rates also exhibited substantially higher bare-refusal rates in Roman Urdu compared to English.
+**2. Safety Engagement Degrades Alongside Language Failure**
+Models with the worst language-identity failure also showed a near-doubling of bare-refusal rate in Roman Urdu vs. English:
 
-Model	Bare Refusal (English)	Bare Refusal (Roman Urdu)
-Llama-3.3-70B	0.0%	0.0%
-Qwen3.6-27B	0.9%	2.5%
-GPT-OSS-120B	24.8%	48.8%
-GPT-OSS-20B	35.3%	53.4%
+| Model | Bare Refusal (English) | Bare Refusal (Roman Urdu) |
+|---|---|---|
+| Llama-3.3-70B | 0.0% | 0.0% |
+| Qwen3.6-27B | 0.9% | 2.5% |
+| GPT-OSS-120B | 24.8% | 48.8% |
+| GPT-OSS-20B | 35.3% | 53.4% |
 
 **3. Actionable-Resource Gap**
 Models providing safety advice mentioned concrete resources (police, helplines, hospitals) **3–4x less often** in Roman Urdu than in English for identical cases (e.g., GPT-OSS-120B: 3.10 mentions in English vs. 0.70 in Roman Urdu).
