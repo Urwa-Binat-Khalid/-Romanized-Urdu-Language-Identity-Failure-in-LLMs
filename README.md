@@ -7,7 +7,7 @@ Red-teaming study evaluating 4 LLMs on a self-constructed 1,503-case Pakistani g
 **1. Language Identity Failure**
 - English prompts: **0.0% failure rate** (perfect consistency)
 - Roman Urdu prompts: **55.7% failure rate** models frequently defaulted to English, Hindi (Devanagari), or Urdu script instead of maintaining Roman Urdu
-- Failure rate is highly model-dependent, ranging from **2.2%** (Llama-3.3-70B) to **96.6%** (GPT-OSS-120B) — a 44x gap indicating the issue stems from training-data composition, not model scale
+- Failure rate is highly model-dependent, ranging from **2.2%** (Llama-3.3-70B) to **96.6%** (GPT-OSS-120B)  a 44x gap indicating the issue stems from training-data composition, not model scale
 
 | Model | Roman Urdu Failure Rate |
 |---|---|
