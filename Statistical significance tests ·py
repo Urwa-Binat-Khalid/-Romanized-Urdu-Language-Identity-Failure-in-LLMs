@@ -1,0 +1,180 @@
+"""
+Statistical Significance Testing for Key Findings
+=====================================================
+Computes chi-square tests and confidence intervals for the main
+comparisons in the paper, to confirm observed differences are
+statistically significant and not due to chance.
+
+Requires: pip install scipy --break-system-packages (if not installed)
+"""
+
+import json
+from scipy import stats
+import math
+
+File-path =
+
+def wilson_confidence_interval(successes, total, confidence=0.95):
+    """Wilson score interval — more accurate than normal approximation
+    for proportions, especially near 0% or 100%."""
+    if total == 0:
+        return (0, 0)
+    z = stats.norm.ppf(1 - (1 - confidence) / 2)
+    p = successes / total
+    denominator = 1 + z**2 / total
+    center = (p + z**2 / (2 * total)) / denominator
+    margin = (z * math.sqrt((p * (1 - p) + z**2 / (4 * total)) / total)) / denominator
+    return (max(0, center - margin), min(1, center + margin))
+
+
+def chi_square_2x2(a, b, c, d, label_a="Group A", label_b="Group B"):
+    """
+    2x2 chi-square test.
+    a = successes in group A, b = failures in group A
+    c = successes in group B, d = failures in group B
+    """
+    table = [[a, b], [c, d]]
+    chi2, p_value, dof, expected = stats.chi2_contingency(table, correction=True)
+    print(f"  Chi-square = {chi2:.2f}, p-value = {p_value:.2e}")
+    if p_value < 0.001:
+        print(f"  --> Highly significant (p < 0.001)")
+    elif p_value < 0.05:
+        print(f"  --> Significant (p < 0.05)")
+    else:
+        print(f"  --> NOT statistically significant (p >= 0.05)")
+    return chi2, p_value
+
+
+# ============================================================
+# TEST 1: English vs Roman Urdu — Overall Language Identity Failure
+# ============================================================
+def test_language_failure_overall():
+    print("=" * 70)
+    print("TEST 1: English vs Roman Urdu — Overall Language Identity Failure")
+    print("=" * 70)
+
+    with open(LANGID_PATH, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    en = [r for r in data if r["language"] == "English" and r.get("detected_response_language") != "technical_error"]
+    ur = [r for r in data if r["language"] == "Roman Urdu" and r.get("detected_response_language") != "technical_error"]
+
+    en_fail = sum(1 for r in en if r["language_identity_failure"])
+    ur_fail = sum(1 for r in ur if r["language_identity_failure"])
+
+    en_ci = wilson_confidence_interval(en_fail, len(en))
+    ur_ci = wilson_confidence_interval(ur_fail, len(ur))
+
+    print(f"\nEnglish:     {en_fail}/{len(en)} failed ({100*en_fail/len(en):.1f}%)  "
+          f"95% CI: [{100*en_ci[0]:.1f}%, {100*en_ci[1]:.1f}%]")
+    print(f"Roman Urdu:  {ur_fail}/{len(ur)} failed ({100*ur_fail/len(ur):.1f}%)  "
+          f"95% CI: [{100*ur_ci[0]:.1f}%, {100*ur_ci[1]:.1f}%]")
+
+    print("\nChi-square test:")
+    chi_square_2x2(en_fail, len(en) - en_fail, ur_fail, len(ur) - ur_fail)
+
+
+# ============================================================
+# TEST 2: Language Failure Rate — Best Model vs Worst Model
+# ============================================================
+def test_best_vs_worst_model():
+    print("\n" + "=" * 70)
+    print("TEST 2: Language Failure — Llama-3.3-70B vs GPT-OSS-120B (Roman Urdu)")
+    print("=" * 70)
+
+    with open(LANGID_PATH, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    ur = [r for r in data if r["language"] == "Roman Urdu" and r.get("detected_response_language") != "technical_error"]
+
+    llama = [r for r in ur if r["model_requested"] == "llama-3.3-70b-versatile"]
+    gpt120 = [r for r in ur if r["model_requested"] == "openai/gpt-oss-120b"]
+
+    llama_fail = sum(1 for r in llama if r["language_identity_failure"])
+    gpt_fail = sum(1 for r in gpt120 if r["language_identity_failure"])
+
+    llama_ci = wilson_confidence_interval(llama_fail, len(llama))
+    gpt_ci = wilson_confidence_interval(gpt_fail, len(gpt120))
+
+    print(f"\nLlama-3.3-70B:  {llama_fail}/{len(llama)} failed ({100*llama_fail/len(llama):.1f}%)  "
+          f"95% CI: [{100*llama_ci[0]:.1f}%, {100*llama_ci[1]:.1f}%]")
+    print(f"GPT-OSS-120B:   {gpt_fail}/{len(gpt120)} failed ({100*gpt_fail/len(gpt120):.1f}%)  "
+          f"95% CI: [{100*gpt_ci[0]:.1f}%, {100*gpt_ci[1]:.1f}%]")
+
+    print("\nChi-square test:")
+    chi_square_2x2(llama_fail, len(llama) - llama_fail, gpt_fail, len(gpt120) - gpt_fail)
+
+
+# ============================================================
+# TEST 3: Bare Refusal Rate — English vs Roman Urdu (per model)
+# ============================================================
+def test_refusal_by_language_per_model():
+    print("\n" + "=" * 70)
+    print("TEST 3: Bare Refusal — English vs Roman Urdu (per model)")
+    print("=" * 70)
+
+    with open(JUDGED_PATH, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    judged = [r for r in data if r.get("llm_judge_classification") in
+              ("explicit_condemnation", "bare_refusal", "soft_deflection", "validation_justification")]
+
+    models = ["llama-3.3-70b-versatile", "qwen/qwen3.6-27b", "openai/gpt-oss-120b", "openai/gpt-oss-20b"]
+
+    for model in models:
+        en = [r for r in judged if r["model_requested"] == model and r["language"] == "English"]
+        ur = [r for r in judged if r["model_requested"] == model and r["language"] == "Roman Urdu"]
+
+        en_ref = sum(1 for r in en if r["llm_judge_classification"] == "bare_refusal")
+        ur_ref = sum(1 for r in ur if r["llm_judge_classification"] == "bare_refusal")
+
+        print(f"\n--- {model} ---")
+        print(f"English:     {en_ref}/{len(en)} ({100*en_ref/len(en):.1f}%)")
+        print(f"Roman Urdu:  {ur_ref}/{len(ur)} ({100*ur_ref/len(ur):.1f}%)")
+
+        if en_ref == 0 and ur_ref == 0:
+            print("  (No refusals in either condition — chi-square not meaningful)")
+            continue
+
+        chi_square_2x2(en_ref, len(en) - en_ref, ur_ref, len(ur) - ur_ref)
+
+
+# ============================================================
+# TEST 4: Religion Control Check — Islam vs Hindu vs Christian
+# ============================================================
+def test_religion_control():
+    print("\n" + "=" * 70)
+    print("TEST 4: Religion Control Check — Condemnation Rate")
+    print("=" * 70)
+
+    with open(JUDGED_PATH, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    judged = [r for r in data if r.get("llm_judge_classification") in
+              ("explicit_condemnation", "bare_refusal", "soft_deflection", "validation_justification")]
+
+    religions = ["Islam", "Hindu", "Christian"]
+    counts = {}
+    for rel in religions:
+        subset = [r for r in judged if r["religion"] == rel]
+        cond = sum(1 for r in subset if r["llm_judge_classification"] == "explicit_condemnation")
+        counts[rel] = (cond, len(subset) - cond, len(subset))
+        ci = wilson_confidence_interval(cond, len(subset))
+        print(f"{rel}: {cond}/{len(subset)} condemned ({100*cond/len(subset):.1f}%)  "
+              f"95% CI: [{100*ci[0]:.1f}%, {100*ci[1]:.1f}%]")
+
+    # 3x2 chi-square across all three religions at once
+    table = [[counts[r][0], counts[r][1]] for r in religions]
+    chi2, p_value, dof, expected = stats.chi2_contingency(table, correction=True)
+    print(f"\n3-way Chi-square = {chi2:.2f}, p-value = {p_value:.3f}")
+    if p_value < 0.05:
+        print("--> Significant difference exists across religions")
+    else:
+        print("--> NO significant difference across religions (supports 'no bias' finding)")
+
+
+if __name__ == "__main__":
+    test_language_failure_overall()
+    test_best_vs_worst_model()
+    test_refusal_by_language_per_model()
+    test_religion_control()
